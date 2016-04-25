@@ -1,0 +1,2 @@
+cd src
+javac PoissonThreads.java && java PoissonThreads > ../data.csv && cd .. && python plot.py data.csv
