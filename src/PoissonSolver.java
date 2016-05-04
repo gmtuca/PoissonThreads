@@ -1,6 +1,9 @@
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public class PoissonSolver {
 
-    private static final int VECTOR_LENGTH = 4096;
+    private static final int VECTOR_LENGTH = 4097;
     private static final double[] F = new double[VECTOR_LENGTH];
     static {
         F[1024] = 1.0D;
@@ -31,11 +34,13 @@ public class PoissonSolver {
 
         //printArr(F);
 
-        double[] V = new double[VECTOR_LENGTH];
+        final double[] V = new double[VECTOR_LENGTH];
 
-        Thread[] threads = new Thread[nThreads];
+        final Thread[] threads = new Thread[nThreads];
+        final CyclicBarrier barrier = new CyclicBarrier(nThreads);
+        final AtomicBoolean atomicBoolean = new AtomicBoolean(true);
 
-        int threadLoad = (VECTOR_LENGTH-2) / nThreads;
+        final int threadLoad = (VECTOR_LENGTH-2) / nThreads;
         int leftOvers = (VECTOR_LENGTH-2) - (threadLoad * nThreads);
 
         //Spread load equally to the different threads such that they
@@ -48,9 +53,9 @@ public class PoissonSolver {
                 j++;
             }
 
-            threads[t] = new PoissonThread(V, F, i, j);
+            threads[t] = new PoissonThread(V, F, i, j, barrier, atomicBoolean);
 
-            i = j;
+            i = j+1;
             j += threadLoad;
         }
 
