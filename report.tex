@@ -33,130 +33,115 @@
 \maketitle
 
 \section{Introduction}
-I have written a version of the \textit{Poisson's Equation} using the relaxation technique with a variable number of threads. The correctness of the program was guaranteed by checking the expected number of iterations (65,251) and also manually visualizing the array convergence over different iterations, as seen in figures \ref{fig:it0}-\ref{fig:itFinal}, produced from script XXXXX.
-	
-  \begin{figure}
-  \centering
-  \begin{minipage}{0.45\textwidth}
-    \caption{0 iterations}
-    \includegraphics[width=1\linewidth, natwidth=800, natheight=600]{graphs/it1.png}
-    \label{fig:it0}
-  \end{minipage}
-  \begin{minipage}{0.45\textwidth}
-    \caption{10 iterations}
-    \includegraphics[width=1\linewidth, natwidth=800, natheight=600]{graphs/it10.png}
-    \label{fig:it10}
-  \end{minipage}
-  \begin{minipage}{0.45\textwidth}
-    \caption{100 iterations}
-    \includegraphics[width=1\linewidth, natwidth=800, natheight=600]{graphs/it100.png}
-    \label{fig:it100}
-  \end{minipage}
-  \begin{minipage}{0.45\textwidth}
-    \caption{100 iterations}
-    \includegraphics[width=1\linewidth, natwidth=800, natheight=600]{graphs/it1000.png}
-    \label{fig:it1000}
-  \end{minipage}
-  \begin{minipage}{0.45\textwidth}
-  \caption{10,000 iterations}
-    \includegraphics[width=1\linewidth, natwidth=800, natheight=600]{graphs/it10000.png}
-    \label{fig:it10000}
-  \end{minipage}
-  \begin{minipage}{0.45\textwidth}
-    \caption{65,250 iterations}
-    \includegraphics[width=1\linewidth, natwidth=800, natheight=600]{graphs/itFinal.png}
-    \label{fig:itFinal}
-  \end{minipage}
-  \end{figure}	
+I have written a version of the \textit{Poisson's Equation} using the relaxation technique with a variable number of threads. Correctness of the program was guaranteed by checking the expected number of iterations (65,251) and also manually visualizing the array convergence over different iterations, as seen in figure \ref{fig:iterations}, produced from listings \ref{lst:process} and \ref{lst:run}.
 
-Intermittent performance drops/spikes were reduced by running every instance 10 times, allowing the gathering of average values and standard deviation. The large amount of data produced from all the runs was analysed and plotted by my Python script under listing \ref{lst:pythonscripts}. The data plots were a consequence of running the given program on \textit{mcore48.cs.man.ac.uk}. \footnote{\label{machinespecs} \\
+\begin{figure}
+\label{fig:iterations}
+\caption{Approximation of Poisson's Equation over different iterations}
+\centering
+\begin{minipage}{0.45\textwidth}
+  \centering
+  \includegraphics[width=1\linewidth, natwidth=800, natheight=600]{graphs/it1.png}\\
+  0 iterations
+\end{minipage}
+\begin{minipage}{0.45\textwidth}
+  \centering
+  \includegraphics[width=1\linewidth, natwidth=800, natheight=600]{graphs/it10.png}\\
+  10 iterations
+\end{minipage}
+\begin{minipage}{0.45\textwidth}
+  \centering
+  \includegraphics[width=1\linewidth, natwidth=800, natheight=600]{graphs/it100.png}\\
+  100 iterations
+\end{minipage}
+\begin{minipage}{0.45\textwidth}
+  \centering
+  \includegraphics[width=1\linewidth, natwidth=800, natheight=600]{graphs/it1000.png}\\
+  1,000 iterations
+\end{minipage}
+\begin{minipage}{0.45\textwidth}
+  \centering
+  \includegraphics[width=1\linewidth, natwidth=800, natheight=600]{graphs/it10000.png}\\
+  10,000 iterations
+\end{minipage}
+\begin{minipage}{0.45\textwidth}
+  \centering
+  \includegraphics[width=1\linewidth, natwidth=800, natheight=600]{graphs/itFinal.png}\\
+  65,250 iterations
+\end{minipage}
+\end{figure}	
+
+Intermittent performance drops/spikes were reduced by running every instance 10 times on \textit{mcore48.cs.man.ac.uk}\footnote{\label{machinespecs} \\
   Dell/AMD quad 12-core (48 cores total), each with specs:\\
   model name: AMD Opteron(tm) Processor 6174 \\
   clock speed: 2.2 GHZ \\
-  cache size: 512 KB \\}
+  cache size: 512 KB \\}, allowing the gathering of average values and standard deviation. The data produced from all the runs was analysed and plotted by a Python script under listing \ref{lst:plot}.
 
 \section{Evaluation}
 
-\iffalse
+Figure \ref{fig:perf} plots the average performance and error bars (based on standard deviation) of the program for this constant vector size. As can be seen in the figure, the overall performance drops drastically with the addition of new threads, which would be counter intuitive to the advantages of multithreaded programs. I evaluate that the vector size (or accuracy of the problem) is too small (only about 4,000) to allow improvements from multithreading. As mentioned in earlier courseworks, \textbf{thread initialization} is expensive (processor-wise and memory-wise) and so is \textbf{blocking at the join}, meaning for small instances such bottleneck may take longer than a single thread solving the problem by itself, which is exactly the case here.
 
+In this program we need to use at least one \textbf{CyclicBarrier} to make sure all threads are ready to proceed (avoiding writing to boundary values while they are being read), which highly impacts performance, similarly to the join. I initially wrote a solution in which each thread awaited twice at the barrier at each iteration, but that introduced even larger bottleneck, as threads were doing very little work before reaching a check-point to wait for other threads. This was improved by passing a Runnable to be executed upon tripping of the barrier, allowing the use of a single await at each iteration (see code at listing \ref{lst:poisson-thread}).  
 
-  Upon writting a version of the Poisson's Equation Approximation program with threads
-  
-  On an instance of this problem, one would expect linear speed up of performance with the increase of threads, as load is equal for every thread and there are enough hardware processors. This means, with the same vector size, 10 threads should run twice faster than 5 threads. This O(\textit{n}) speedup is certainly not true for the sorting of small vectors, because of overheads such as \textbf{thread initialisation time} (which includes OS calls, stack memory assignment for the thread, adding it to the JVM data structure,...) and \textbf{joins}. This meas the overall thread creation bottleneck may take longer than the sorting itself. This is a very similar behaviour to the previous coursework for Vector Addition with Threads.
+Another enhancement was made by having each thread checking for convergence of their own regions concurrently and if at least one thread had not converged, it would vote to have another iteration, which would be accepted by all threads. This is much faster than having a single thread scanning the whole array, checking for convergence, which completely defeats the purpose of using threads.
 
-  For small vector sizes, the increase of number of threads to solve the problem in fact decreases performance, as can be seen on figures \ref{fig:1000} and \ref{fig:10000} for vector sizes of \textit{1000} and \textit{10,000}. In these cases the program has its best performance with a single thread sorting the whole array sequentially, which saves having to spawn threads which will take milliseconds to initialise and quickly die after doing very few operations.
+Another factor which could impact performance is \textbf{cache misses for large problems}, specially given we are using arrays of doubles (64-bit elements). If the working set of a thread cannot always be kept in cache (ie. it is full), cache misses would highly slow down the program. This is very unlikely the case for our current problem, but could impact an array with millions of elements.
 
-  \begin{figure}
+\begin{figure}
   \centering
-  \begin{minipage}{0.45\textwidth}
-    \caption{1,000 elements}
-    \includegraphics[width=1\linewidth, natwidth=800, natheight=600]{evaluation/graphs/1000.png}
-    \label{fig:1000}
-  \end{minipage}
-  \begin{minipage}{0.45\textwidth}
-    \caption{10,000 elements}
-    \includegraphics[width=1\linewidth, natwidth=800, natheight=600]{evaluation/graphs/10000.png}
-    \label{fig:10000}
-  \end{minipage}
-  \end{figure}
+  \caption{Performance plot}
+  \includegraphics[width=0.8\linewidth, natwidth=800, natheight=600]{graphs/performance.png}
+  \label{fig:perf}
+\end{figure}
 
-  The balance of thread overhead and speedup is reached at \textit{100,000}-\textit{1,000,000} vector sizes, as seen on figures
-  \ref{fig:100000} and \ref{fig:1000000} respectively, where adding more threads does not significantly increase performance, as it introduces similar slowdown. Because of this the graphs present wide error bars and an overall horizontal performance. 
+Although these enhancement may be barely visible with such a small array (about 4,000 elements), I evaluate that my technique, using \textit{one await per iteration} and \textit{multithreaded convergence check} would perform very well for large vectors.
 
-  \begin{figure}
+A linear, \textbf{ideal performance} increase with the addition of threads is shown on figure \ref{fig:ideal-perf} which assumes that if one thread runs at 1 op/sec, then two threads will run at 2 op/sec. In summary, for the Poisson's Equation problem, as mentioned earlier, this O(\textit{n}) speedup is surely not realistic due to the following multithreading bottlenecks:
+
+\begin{itemize}
+\setlength\itemsep{0.35em}
+  \item \textbf{Awaiting at barrier}
+  \item \textbf{Final join}
+  \item \textbf{Convergence voting}
+  \item \textbf{Cache misses for large vectors}
+\end{itemize}
+
+\begin{figure}
   \centering
-  \begin{minipage}{0.45\textwidth}
-    \caption{100,000 elements}
-    \includegraphics[width=1\linewidth, natwidth=800, natheight=600]{evaluation/graphs/100000.png}
-    \label{fig:100000}
-  \end{minipage}
-  \begin{minipage}{0.45\textwidth}
-    \caption{1,000,000 elements}
-    \includegraphics[width=1\linewidth, natwidth=800, natheight=600]{evaluation/graphs/1000000.png}
-    \label{fig:1000000}
-  \end{minipage}
-  \end{figure}
+  \caption{Performance plot}
+  \includegraphics[width=0.8\linewidth, natwidth=800, natheight=600]{graphs/ideal_performance.png}
+  \label{fig:ideal-perf}
+\end{figure}
 
-  The advantage of threads can be finally seen on large instances of the problem with \textgreater\textit{10,000,000} elements, as described on figures \ref{fig:10000000} and \ref{fig:100000000}. Joins and initialisation still pose as an overheads, but are insignificant given the amount of sorting performed.
+\clearpage
+\section{Code}
+  \subsection{Poisson Solver}
+    \lstinputlisting[language=Java,
+                     caption=Poisson Solver,
+                     label={lst:poisson-solver}]{src/PoissonSolver.java}
 
-  \clearpage
+    \lstinputlisting[language=Java,
+                     caption=Array Wrapper,
+                     label={lst:array-wrapper}]{src/ArrayWrapper.java}
 
-  \begin{figure}
-  \centering
-  \begin{minipage}{0.45\textwidth}
-    \caption{10,000,000 elements}
-    \includegraphics[width=1\linewidth, natwidth=800, natheight=600]{evaluation/graphs/10000000.png}
-    \label{fig:10000000}
-  \end{minipage}
-  \begin{minipage}{0.45\textwidth}
-    \caption{100,000,000 elements}
-    \includegraphics[width=1\linewidth, natwidth=800, natheight=600]{evaluation/graphs/100000000.png}
-    \label{fig:100000000}
-  \end{minipage}
-  \end{figure}
+    \lstinputlisting[language=Java,
+                     caption=Poisson Thread,
+                     label={lst:poisson-thread}]{src/PoissonThread.java}
 
-  \section{Code}
-    \subsection{Java Unit Tests}
-      \lstinputlisting[language=Java,
-                       caption=MergeSort Unit Tests,
-                       label={lst:mergesortunit}]{src/MergeSortTest.java}
+  \subsection{Data Evaluation Scripts}  
+    \lstinputlisting[language=bash,
+                     caption=Bash scripts to run PoissonThreads with multiple parameters,
+                     label={lst:bashscripts}]{src/DemoTuca.sct}
 
-    \subsection{Java Merge Sort Program}
-      \lstinputlisting[language=Java,
-                       caption=MergeSort Main class,
-                       label={lst:mergesort}]{src/MergeSort.java}
+    \lstinputlisting[language=Python,
+                     caption=Python scripts to gather and plot results,
+                     label={lst:process}]{src/process.py}
 
-      \lstinputlisting[language=Java,
-                       caption=MergeSort Thread class,
-                       label={lst:mergesortthread}]{src/MergeSortThread.java}
+    \lstinputlisting[language=bash,
+                     caption=Bash scripts to plot convergence over iterations,
+                     label={lst:run}]{run}
 
-    \subsection{Data Evaluation Scripts}  
-      \lstinputlisting[language=bash,
-                       caption=Bash scripts to run MergeSort with multiple parameters,
-                       label={lst:bashscripts}]{src/DemoTuca.sct}
-      \lstinputlisting[language=Python,
-                       caption=Python scripts to gather and plot results,
-                       label={lst:pythonscripts}]{src/process.py}
-                       
-\fi
+    \lstinputlisting[language=Python,
+                     caption=Python scripts to plot convergence over iterations,
+                     label={lst:plot}]{plot.py}
 \end{document}

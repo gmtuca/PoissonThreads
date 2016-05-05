@@ -1,2 +1,5 @@
+# This script gets the output of the PoissonSolver (which in this case needs to be
+# the array at certain iterations) and plots them in a visual way
+
 cd src
 javac *.java && java PoissonSolver $1 > ../data.csv && cd .. && python plot.py data.csv
