@@ -28,11 +28,7 @@ public class PoissonThread extends Thread {
     @Override
     public void run() {
 
-        //int a = 0;
         do {
-            //a++;
-            //System.out.println(a);
-
             approximate();
             boolean converged = hasConverged();
             if(!converged){
@@ -44,9 +40,6 @@ public class PoissonThread extends Thread {
             } catch (BrokenBarrierException | InterruptedException e) {
                 e.printStackTrace();
             }
-
-            //if(a % 10000 == 0)
-            //    printArr(wrapperV.get());
 
         } while(!stopSignal.get());
     }
@@ -62,8 +55,6 @@ public class PoissonThread extends Thread {
     }
 
     private boolean hasConverged(){
-        //65251
-
         double[] V = wrapperV.get();
         double[] copyV = wrapperCopyV.get();
 
@@ -74,19 +65,6 @@ public class PoissonThread extends Thread {
         }
 
         return true;
-    }
-
-    public static void printArr(double[] A){
-        StringBuilder sb = new StringBuilder();
-
-        for(int i = 0; i < A.length-1; i++){
-            sb.append(A[i])
-                    .append(',');
-        }
-
-        sb.append(A[A.length-1]);
-
-        System.out.println(sb.toString());
     }
 
     @Override
