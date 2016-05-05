@@ -38,10 +38,12 @@ public class PoissonSolver {
         final AtomicBoolean stopSignal = new AtomicBoolean(false);
 
         final Thread[] threads = new Thread[nThreads];
+
         final CyclicBarrier barrier = new CyclicBarrier(nThreads,
                 new Runnable() {
                     @Override
                     public void run() {
+
                         if(allConverged.get()){
                             stopSignal.set(true);
                             return;
@@ -88,6 +90,7 @@ public class PoissonSolver {
                 System.err.println("Thread " + t + " was interrupted!");
             }
         }
+
         long endTime = System.nanoTime();
 
         //Calculate performance as 1 / execution_time_in_seconds

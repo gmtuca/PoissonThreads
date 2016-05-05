@@ -45,18 +45,10 @@ public class PoissonThread extends Thread {
                 e.printStackTrace();
             }
 
-            if(allConverged.get()){
-                break;
-            }
-
-            allConverged.set(true);
-
             //if(a % 10000 == 0)
-            //    printArr(V);
+            //    printArr(wrapperV.get());
 
         } while(!stopSignal.get());
-
-        //System.out.println(Thread.currentThread().getName() + " converged after " + a + " iterations");
     }
 
     private void approximate(){
