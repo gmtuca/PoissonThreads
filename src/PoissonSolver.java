@@ -88,11 +88,9 @@ public class PoissonSolver {
                 System.err.println("Thread " + t + " was interrupted!");
             }
         }
-
         long endTime = System.nanoTime();
 
         //Calculate performance as 1 / execution_time_in_seconds
         System.out.println(1000000000.0/(endTime - startTime));
-
     }
 }
