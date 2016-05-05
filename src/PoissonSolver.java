@@ -32,13 +32,29 @@ public class PoissonSolver {
             System.exit(1);
         }
 
-        //printArr(F);
-
-        final double[] V = new double[VECTOR_LENGTH];
+        final ArrayWrapper V = new ArrayWrapper(new double[VECTOR_LENGTH]);
+        final ArrayWrapper copyV = new ArrayWrapper(new double[VECTOR_LENGTH]);
+        final AtomicBoolean allConverged = new AtomicBoolean(true);
+        final AtomicBoolean stopSignal = new AtomicBoolean(false);
 
         final Thread[] threads = new Thread[nThreads];
-        final CyclicBarrier barrier = new CyclicBarrier(nThreads);
-        final AtomicBoolean atomicBoolean = new AtomicBoolean(true);
+        final CyclicBarrier barrier = new CyclicBarrier(nThreads,
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        if(allConverged.get()){
+                            stopSignal.set(true);
+                            return;
+                        }
+                        else{
+                            allConverged.set(true);
+                        }
+
+                        double[] tmp = V.get();
+                        V.set(copyV.get());
+                        copyV.set(tmp);
+                    }
+                });
 
         final int threadLoad = (VECTOR_LENGTH-2) / nThreads;
         int leftOvers = (VECTOR_LENGTH-2) - (threadLoad * nThreads);
@@ -53,13 +69,13 @@ public class PoissonSolver {
                 j++;
             }
 
-            threads[t] = new PoissonThread(V, F, i, j, barrier, atomicBoolean);
+            threads[t] = new PoissonThread(V, copyV, F, i, j, barrier, allConverged, stopSignal);
 
             i = j+1;
             j += threadLoad;
         }
 
-        //long startTime = System.nanoTime();
+        long startTime = System.nanoTime();
         for(Thread t : threads){
             t.start();
         }
@@ -73,11 +89,10 @@ public class PoissonSolver {
             }
         }
 
-        //long endTime = System.nanoTime();
+        long endTime = System.nanoTime();
 
         //Calculate performance as 1 / execution_time_in_seconds
-        //System.out.println(1000000000.0/(endTime - startTime));
+        System.out.println(1000000000.0/(endTime - startTime));
 
     }
-
 }
