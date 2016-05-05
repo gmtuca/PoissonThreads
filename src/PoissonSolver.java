@@ -3,14 +3,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class PoissonSolver {
 
+    //Initialize force function
     private static final int VECTOR_LENGTH = 4097;
     private static final double[] F = new double[VECTOR_LENGTH];
     static {
         F[1024] = 1.0D;
         F[2048] = 5.0D;
     }
-
-    private static int a = 0;
 
     public static void main(String[] args){
 
@@ -45,8 +44,6 @@ public class PoissonSolver {
                 new Runnable() {
                     @Override
                     public void run() {
-                        a++;
-
                         if(allConverged.get()){
                             stopSignal.set(true);
                             return;
@@ -54,9 +51,6 @@ public class PoissonSolver {
                         else{
                             allConverged.set(true);
                         }
-
-                        if(a == 1 || a == 10 || a == 100 || a == 1000 || a == 10000 || a == 65250)
-                            printArr(V.get());
 
                         double[] tmp = V.get();
                         V.set(copyV.get());
@@ -100,21 +94,6 @@ public class PoissonSolver {
         long endTime = System.nanoTime();
 
         //Calculate performance as 1 / execution_time_in_seconds
-        //System.out.println(1000000000.0/(endTime - startTime));
+        System.out.println(1000000000.0/(endTime - startTime));
     }
-
-
-    private static void printArr(double[] A){
-        StringBuilder sb = new StringBuilder();
-
-        for(int i = 0; i < A.length-1; i++){
-            sb.append(A[i])
-                    .append(',');
-        }
-
-        sb.append(A[A.length-1]);
-
-        System.out.println(sb.toString());
-    }
-
 }
