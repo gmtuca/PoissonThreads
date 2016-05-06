@@ -21,11 +21,11 @@ with open(sys.argv[1], 'rb') as f:
     graph = {'x':[], 'y':[], 'yerr':[]}
 
     for row in reader:
-    	if not row:
+        if not row:
             graph['x'].append(l)
             graph['y'].append(statistics.mean(stats[l]))
             graph['yerr'].append(statistics.stdev(stats[l]))
-    	else:
+        else:
             p = int(row[0])
             l = p
 
@@ -35,4 +35,3 @@ with open(sys.argv[1], 'rb') as f:
             stats[p].append(float(row[1]))
 
     plotandsave(graph)
-
